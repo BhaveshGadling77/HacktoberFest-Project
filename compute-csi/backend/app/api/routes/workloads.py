@@ -36,4 +36,18 @@ async def list_workload_templates() -> List[Dict[str, Any]]:
 @router.post("/workloads/run", response_model=StartRunResponse, status_code=status.HTTP_201_CREATED)
 async def start_run(request: StartRunRequest):
     """Launch a new workload run managed by Temporal."""
-    return await workload_service.create_run(request.workload_spec)
+    spec = request.workload_spec or WorkloadSpec()
+    if request.fault_injection:
+        fi_type = request.fault_injection.get("type", "").upper()
+        if fi_type in ("RETRY", "FIRST_ATTEMPT_FAIL", "FAIL_RETRY"):
+            spec.execution_mode = ExecutionMode.FAULT_RETRY
+            spec.fault_scenario = FaultScenario.FIRST_ATTEMPT_FAIL
+    elif request.fault_scenario:
+        try:
+            spec.fault_scenario = FaultScenario(request.fault_scenario)
+        except Exception:
+            pass
+
+    res = await workload_service.create_run(spec)
+    res.id = res.run_id
+    return res

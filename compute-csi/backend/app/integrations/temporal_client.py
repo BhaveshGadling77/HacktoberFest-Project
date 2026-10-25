@@ -44,9 +44,15 @@ async def get_workflow_history(workflow_id: str, run_id: Optional[str] = None) -
         handle = client.get_workflow_handle(workflow_id, run_id=run_id)
         events = []
         async for event in handle.fetch_history_events():
+            try:
+                from temporalio.api.enums.v1 import EventType
+                ev_name = EventType.Name(event.event_type).removeprefix("EVENT_TYPE_")
+            except Exception:
+                ev_name = str(event.event_type)
+
             event_dict = {
                 "event_id": str(event.event_id),
-                "event_type": event.event_type.name if hasattr(event.event_type, "name") else str(event.event_type),
+                "event_type": ev_name,
                 "timestamp": event.event_time.isoformat() if event.event_time else datetime.now(timezone.utc).isoformat(),
                 "attributes": {},
             }

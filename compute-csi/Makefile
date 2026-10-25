@@ -39,10 +39,10 @@ frontend-run:
 	cd frontend && npm run dev
 
 backend-install:
-	cd backend && uv venv .venv && source .venv/bin/activate && uv pip install -e .
+	cd backend && uv venv --python 3.12 .venv && source .venv/bin/activate && uv pip install -e .
 
 worker-install:
-	cd worker && uv venv .venv && source .venv/bin/activate && uv pip install -e .
+	cd worker && uv venv --python 3.12 .venv && source .venv/bin/activate && uv pip install -e .
 
 frontend-install:
 	cd frontend && npm install

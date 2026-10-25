@@ -26,6 +26,7 @@ class ActivityEvent(BaseModel):
 
 class RunDetail(BaseModel):
     run_id: str
+    id: Optional[str] = None
     workflow_id: Optional[str] = None
     workload_type: str
     execution_mode: str
@@ -42,6 +43,7 @@ class RunDetail(BaseModel):
 
 class RunSummary(BaseModel):
     run_id: str
+    id: Optional[str] = None
     workflow_id: Optional[str] = None
     status: str
     start_time: Optional[str] = None

@@ -46,9 +46,9 @@ def wait_for_run(run_id: str, label: str, timeout: int = TIMEOUT) -> dict | None
         except Exception:
             time.sleep(3)
             continue
-        status = run.get("status", "unknown")
-        if status in ("completed", "failed", "cancelled"):
-            print(f"\n  [{label}] run {run_id} → {status}")
+        status = str(run.get("status", "unknown")).lower()
+        if status in ("completed", "failed", "cancelled", "timed_out"):
+            print(f"\n  [{label}] run {run_id} → {status.upper()}")
             return run
         print(".", end="", flush=True)
         dot_count += 1

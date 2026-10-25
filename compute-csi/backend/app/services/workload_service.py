@@ -87,6 +87,7 @@ class WorkloadService:
             summaries = [
                 RunSummary(
                     run_id=r.id,
+                    id=r.id,
                     workflow_id=r.workflow_id,
                     status=r.status,
                     start_time=r.start_time,
@@ -116,6 +117,7 @@ class WorkloadService:
 
             return RunDetail(
                 run_id=run.id,
+                id=run.id,
                 workflow_id=run.workflow_id,
                 workload_type=run.workload_type,
                 execution_mode=run.execution_mode,
@@ -171,10 +173,26 @@ class WorkloadService:
                     except Exception:
                         pass
 
-            # Count attempts from timeline
+            # Count attempts from timeline and workflow result
             timeline = await self.temporal.get_run_timeline(run.workflow_id)
             attempt_count = sum(1 for e in timeline if e.event_type == "activity_started")
             failure_count = sum(1 for e in timeline if e.event_type in ("activity_failed", "activity_timed_out"))
+            
+            # If completed, check workflow return value for verified activity attempt count
+            if temporal_status == "COMPLETED":
+                try:
+                    from app.integrations.temporal_client import get_temporal_client
+                    client = await get_temporal_client()
+                    if client:
+                        handle = client.get_workflow_handle(run.workflow_id)
+                        res = await handle.result()
+                        if isinstance(res, dict) and "attempt" in res:
+                            attempt_count = max(attempt_count, int(res["attempt"]))
+                            failure_count = max(failure_count, max(0, int(res["attempt"]) - 1))
+                            update_data["outcome"] = res.get("status", "SUCCESS")
+                except Exception:
+                    pass
+
             if attempt_count > 0:
                 update_data["attempt_count"] = attempt_count
             if failure_count > 0:

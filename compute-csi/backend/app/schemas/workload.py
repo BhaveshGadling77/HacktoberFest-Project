@@ -34,11 +34,16 @@ class WorkloadSpec(BaseModel):
 
 
 class StartRunRequest(BaseModel):
-    workload_spec: WorkloadSpec
+    workload_spec: Optional[WorkloadSpec] = None
+    # Flexible top-level attributes
+    fault_scenario: Optional[str] = None
+    execution_mode: Optional[str] = None
+    fault_injection: Optional[dict] = None
 
 
 class StartRunResponse(BaseModel):
     run_id: str
+    id: Optional[str] = None
     workflow_id: str
     status: str
     message: str

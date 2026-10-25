@@ -63,7 +63,7 @@ def wait_for_run(run_id: str, timeout: int = 180) -> dict | None:
     while time.time() < deadline:
         try:
             run = api("GET", f"/api/runs/{run_id}")
-            if run.get("status") in ("completed", "failed", "cancelled"):
+            if str(run.get("status", "")).lower() in ("completed", "failed", "cancelled", "timed_out"):
                 return run
         except Exception:
             pass
