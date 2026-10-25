@@ -10,6 +10,12 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 KEPLER_METRIC_CANDIDATES = [
+    # Current Kepler metrics (CPU energy, in joules).
+    "kepler_container_cpu_joules_total",
+    "kepler_pod_cpu_joules_total",
+    "kepler_process_cpu_joules_total",
+    "kepler_node_cpu_joules_total",
+    # Retain compatibility with older Kepler releases.
     "kepler_container_joules_total",
     "kepler_process_package_joules_total",
     "kepler_node_package_joules_total",

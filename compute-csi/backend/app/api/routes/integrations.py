@@ -36,12 +36,26 @@ async def get_integrations_status():
     # 3. Kepler
     kepler_adapter = KeplerAdapter(prom_client)
     kepler_metrics = await kepler_adapter.discover_available_metrics() if prom_connected else []
+    kepler_targets = []
+    if prom_connected:
+        scrape_status = await prom_client.query('up{job="kepler"}')
+        for series in scrape_status.get("data", {}).get("result", []):
+            values = series.get("value", [])
+            kepler_targets.append({
+                "instance": series.get("metric", {}).get("instance", "unknown"),
+                "up": len(values) > 1 and values[1] == "1",
+            })
     kepler_connected = len(kepler_metrics) > 0
     kepler_status = {
         "connected": kepler_connected,
         "available_metrics": kepler_metrics,
+        "scrape_targets": kepler_targets,
         "error": None if kepler_connected else (
-            "No Kepler metrics detected in Prometheus. Kepler requires Kubernetes DaemonSet with eBPF support."
+            "Kepler scrape target is DOWN in Prometheus. Check the kepler container and target address."
+            if kepler_targets and not any(target["up"] for target in kepler_targets)
+            else "Kepler is scraped, but no supported energy metrics are present; check host sensors."
+            if kepler_targets and any(target["up"] for target in kepler_targets)
+            else "No Kepler scrape target found. Start with `docker compose --profile kepler up -d` or configure a Kubernetes exporter."
             if prom_connected else "Prometheus unavailable, cannot probe Kepler"
         ),
     }

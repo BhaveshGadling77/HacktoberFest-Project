@@ -50,10 +50,17 @@ async def get_workflow_history(workflow_id: str, run_id: Optional[str] = None) -
             except Exception:
                 ev_name = str(event.event_type)
 
+            event_time = event.event_time
+            if event_time:
+                # Temporal history timestamps are protobuf Timestamp values.
+                event_timestamp = event_time.ToDatetime(tzinfo=timezone.utc).isoformat()
+            else:
+                event_timestamp = datetime.now(timezone.utc).isoformat()
+
             event_dict = {
                 "event_id": str(event.event_id),
                 "event_type": ev_name,
-                "timestamp": event.event_time.isoformat() if event.event_time else datetime.now(timezone.utc).isoformat(),
+                "timestamp": event_timestamp,
                 "attributes": {},
             }
             # Extract common attributes safely

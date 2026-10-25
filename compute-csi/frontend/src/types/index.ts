@@ -121,6 +121,7 @@ export interface IntegrationStatus {
   task_queue?: string;
   instance_url?: string;
   available_metrics?: string[];
+  scrape_targets?: { instance: string; up: boolean }[];
 }
 
 export interface IntegrationsStatus {

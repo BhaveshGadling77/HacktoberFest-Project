@@ -181,9 +181,14 @@ All routes are available under `/api/v1` and aliased under `/api`:
 
 ## 7. Observability & Kepler Boundaries
 
-### Why Kepler Requires Kubernetes + eBPF
-Kepler (Kubernetes-based Efficient Power Level Exporter) uses Linux kernel eBPF probes and hardware performance counters (such as Intel/AMD RAPL) to measure energy consumption of processes and containers.
-- **In Local Development / Docker**: Host Linux permissions or lack of RAPL virtual counters mean Kepler is typically disabled.
+### Kepler Requirements and Local Docker
+Kepler uses Linux kernel features and hardware power counters (such as Intel/AMD RAPL) to measure energy consumption. Kubernetes is supported, and this project also provides an optional Docker Compose service for Linux hosts:
+
+```bash
+docker compose --profile kepler up -d --build
+```
+
+Prometheus must show the `kepler` target as UP at `http://localhost:9090/targets`. Docker Desktop may expose only its Linux VM, and hosts without supported energy sensors may not report energy metrics.
 - **Honest Status**: If Kepler is not discovered in Prometheus, Compute CSI returns:
   ```json
   {

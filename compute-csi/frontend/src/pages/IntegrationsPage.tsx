@@ -80,10 +80,16 @@ export function IntegrationsPage() {
               ? data.kepler.available_metrics.join(', ')
               : 'None detected',
         },
+        {
+          label: 'Prometheus targets',
+          value: data.kepler.scrape_targets?.length
+            ? data.kepler.scrape_targets.map((target) => `${target.instance}: ${target.up ? 'UP' : 'DOWN'}`).join(', ')
+            : 'No target found',
+        },
       ],
       error: data.kepler.error,
       setupHelp:
-        'Kepler requires a Kubernetes cluster with Linux kernel eBPF support and RAPL energy counters. In pure local Docker, energy telemetry honestly reports unavailable.',
+        'For local Linux Docker, start it with `docker compose --profile kepler up -d --build`, then check Prometheus Targets at http://localhost:9090/targets. The kepler job must be UP. Energy metrics require supported host sensors (RAPL or hwmon); Docker Desktop may expose only its Linux VM. Kubernetes deployments are also supported.',
     },
     {
       id: 'gemma',

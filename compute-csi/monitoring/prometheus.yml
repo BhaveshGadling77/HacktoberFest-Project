@@ -12,9 +12,10 @@ scrape_configs:
       - targets: ['backend:8000']
     metrics_path: '/metrics'
 
-  # Kepler - only active when deployed in a supported environment
-  # Uncomment and configure when Kepler is available:
-  # - job_name: 'kepler'
-  #   static_configs:
-  #     - targets: ['kepler-exporter:9102']
-  #   metrics_path: '/metrics'
+  # Add Kepler endpoints to kepler-targets.json. Prometheus reloads the file
+  # automatically; targets must still be reachable from the Compose network.
+  - job_name: 'kepler'
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/kepler-targets.json'
+        refresh_interval: 30s

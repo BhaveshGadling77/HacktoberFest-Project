@@ -6,12 +6,13 @@ This directory contains monitoring configuration for **Compute CSI — AI Infras
 
 ## What Prometheus Collects
 
-Prometheus is configured to scrape metrics from two sources in this setup:
+Prometheus scrapes itself, the backend, and Kepler endpoints listed in `kepler-targets.json`:
 
 | Job | Target | Purpose |
 |-----|--------|---------|
 | `prometheus` | `localhost:9090` | Prometheus self-monitoring |
 | `compute-csi-backend` | `backend:8000/metrics` | FastAPI application metrics (request counts, latencies, active workflows, error rates) |
+| `kepler` | `kepler-targets.json` | Kepler energy metrics from a supported Linux/Kubernetes deployment |
 
 The backend exposes standard [Prometheus Python client](https://github.com/prometheus/client_python) metrics via the `/metrics` endpoint, including:
 - HTTP request duration histograms (`http_request_duration_seconds`)
@@ -28,37 +29,50 @@ The backend exposes standard [Prometheus Python client](https://github.com/prome
 ### Requirements
 
 > [!IMPORTANT]
-> Kepler has strict infrastructure requirements and **cannot run in a plain Docker Compose** environment.
+> The opt-in Compose service is intended for Linux hosts. Docker Desktop may expose its Linux VM rather than the physical host, and hardware energy sensors may not be available.
 
 | Requirement | Details |
 |-------------|---------|
-| **Kubernetes** | Must run as a DaemonSet on each node |
+| **Kubernetes** | Needed for Kubernetes pod attribution; the Compose service can export host and process metrics without Kubernetes |
 | **Linux kernel ≥ 4.18** | Required for eBPF support |
 | **eBPF / BCC** | Kernel must be compiled with eBPF support (`CONFIG_BPF=y`) |
-| **Privileged DaemonSet** | Needs `hostPID: true`, `hostNetwork: true`, and privileged container access to read `/sys/` and hardware counters |
+| **Host access** | Compose uses host PID visibility, read-only `/proc` and `/sys`, and `SYS_PTRACE` to collect host metrics |
 | **Hardware PMU** | CPU Performance Monitoring Units for accurate power estimates; falls back to model-based estimates if unavailable |
 | **RAPL** | Intel Running Average Power Limit (AMD alternatives exist) for CPU socket/package power |
 
-### How to Enable Kepler in prometheus.yml
+### Run Kepler with the Compose stack
 
-Once Kepler is deployed in your Kubernetes cluster, uncomment and adjust the scrape config:
+The Kepler service and Prometheus scrape target are configured. On a supported
+Linux host, start the stack with the Kepler profile:
 
-```yaml
-scrape_configs:
-  - job_name: 'kepler'
-    static_configs:
-      - targets: ['kepler-exporter:9102']   # adjust host/port to match your DaemonSet service
-    metrics_path: '/metrics'
-```
-
-Then restart Prometheus:
 ```bash
-# Docker Compose
-docker compose restart prometheus
-
-# Kubernetes
-kubectl rollout restart deployment/prometheus -n monitoring
+docker compose --profile kepler up --build
 ```
+
+Prometheus scrapes `kepler:28282` on the Compose network. Kepler metrics are
+also published at `http://localhost:28282/metrics`. The target is configured
+in `monitoring/kepler-targets.json`.
+
+Check Prometheus scrape status at `http://localhost:9090/targets`, then check
+Compute CSI integration status at
+`http://localhost:8000/api/v1/integrations/status`. Kepler should show as
+connected when it exports one of the CPU energy counters recognized by the
+adapter.
+
+If Kepler is already running in Kubernetes or on another host, replace the
+target in `monitoring/kepler-targets.json` with an address reachable from the
+Prometheus container. For Kubernetes installation options, see Kepler’s
+[official installation guide](https://github.com/sustainable-computing-io/kepler/blob/main/docs/user/installation.md).
+
+Stop Kepler while leaving the rest of the stack running with:
+
+```bash
+docker compose stop kepler
+```
+
+This service reads host `/proc` and `/sys`. Docker Desktop and non-Linux Docker
+hosts may expose only a VM's metrics, and they may not expose physical hardware
+energy readings.
 
 ---
 
