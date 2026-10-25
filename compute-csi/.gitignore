@@ -50,6 +50,11 @@ dist/
 .vite/
 *.local
 
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
 # Docker volumes
 postgres_data/
 
