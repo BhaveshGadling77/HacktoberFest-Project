@@ -27,7 +27,11 @@ export function IntegrationHealth({ health }: Props) {
       status: health.kepler,
       desc: health.kepler?.connected
         ? `${health.kepler.available_metrics?.length || 0} metrics active`
-        : 'Requires Kubernetes + eBPF',
+        : health.kepler?.scrape_targets?.length
+          ? health.kepler.scrape_targets.some((target) => target.up)
+            ? 'Scraped; no energy metrics'
+            : 'Prometheus target is DOWN'
+          : 'No scrape target configured',
     },
     {
       name: 'Gemma AI Engine',

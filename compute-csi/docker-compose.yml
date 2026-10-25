@@ -27,10 +27,10 @@ services:
       - POSTGRES_USER=csi_user
       - POSTGRES_PWD=${POSTGRES_PASSWORD:-csi_dev_password}
       - POSTGRES_SEEDS=postgres
-      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
     depends_on:
       postgres:
         condition: service_healthy
+    # Let the image use its bundled dynamic config for this server version.
     healthcheck:
       test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
       interval: 30s
@@ -54,6 +54,7 @@ services:
       - "9090:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/kepler-targets.json:/etc/prometheus/kepler-targets.json:ro
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -65,6 +66,23 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
+
+  kepler:
+    image: quay.io/sustainable_computing_io/kepler:v0.11.4
+    profiles: ["kepler"]
+    pid: host
+    ports:
+      - "28282:28282"
+    command:
+      - --host.procfs=/host/proc
+      - --host.sysfs=/host/sys
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - apparmor:unconfined
 
   backend:
     build:
@@ -90,9 +108,9 @@ services:
       postgres:
         condition: service_healthy
       temporal:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 20s
       timeout: 5s
       retries: 5
@@ -106,8 +124,10 @@ services:
       - TEMPORAL_NAMESPACE=default
       - TEMPORAL_TASK_QUEUE=compute-csi-queue
     depends_on:
-      - temporal
-      - backend
+      temporal:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
 
   frontend:
     build:
@@ -118,7 +138,8 @@ services:
     environment:
       - VITE_API_BASE_URL=http://localhost:8000
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
 volumes:
   postgres_data:

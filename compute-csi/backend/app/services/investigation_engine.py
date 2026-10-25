@@ -151,7 +151,7 @@ class InvestigationEngine:
             findings.append(Finding(
                 finding_id=f"fnd-{uuid.uuid4().hex[:8]}",
                 finding_type=FindingType.MISSING_DATA,
-                description="Kepler energy metrics are unavailable. Kepler requires a supported Kubernetes environment with eBPF capability.",
+                description="Kepler energy metrics are unavailable. Check that the exporter is running, Prometheus is scraping it, and the host exposes supported energy sensors.",
                 severity=Severity.LOW,
                 evidence_refs=[e.evidence_id for e in evidence if not e.available],
                 verified=True,
